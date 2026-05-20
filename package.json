@@ -1,0 +1,14 @@
+{
+  "name": "grand-chat",
+  "version": "1.0.0",
+  "description": "Grand Chat - Telegram-like messenger",
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "npm run dev:backend & npm run dev:frontend",
+    "build": "cd backend && npm install --include=dev && cd ../frontend && npm install && npm run build",
+    "start": "cd backend && npm start",
+    "railway:build": "npm run build"
+  }
+}

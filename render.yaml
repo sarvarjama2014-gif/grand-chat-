@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: grand-chat
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+      - key: PORT
+        value: 5001
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRE
+        value: 30d
+      - key: UPLOAD_PATH
+        value: uploads
+      - key: OWNER_USERNAME
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://grand-chat.onrender.com,https://grand-chat.vercel.app
