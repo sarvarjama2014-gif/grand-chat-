@@ -4,10 +4,9 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
+dotenv.config();
 require('./config/database');
 const setupSocket = require('./socket');
-
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
