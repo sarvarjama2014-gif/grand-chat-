@@ -200,9 +200,9 @@ export default function Admin() {
                           {u.isBanned && <span className="badge badge-danger" style={{ marginLeft: 4 }}>Banned</span>}
                         </td>
                         <td>
-                          {u.username === 'grandadmin' ? (
+                          {u.isAdmin ? (
                             <span className="badge" style={{ background: 'rgba(42,171,238,0.15)', color: 'var(--primary)' }}>Owner</span>
-                          ) : u.isAdmin ? (
+                          ) : (
                             <span className="badge" style={{ background: 'rgba(251,140,0,0.15)', color: 'var(--warning)' }}>Admin</span>
                           ) : (
                             <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>User</span>

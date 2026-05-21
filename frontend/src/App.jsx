@@ -16,7 +16,7 @@ const ProtectedRoute = ({ children }) => {
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth()
   if (loading) return <div className="loading-screen"><div className="spinner" /></div>
-  return user && user.username === 'grandadmin' ? children : <Navigate to="/" />
+  return user && user.isAdmin ? children : <Navigate to="/" />
 }
 
 const PublicRoute = ({ children }) => {

