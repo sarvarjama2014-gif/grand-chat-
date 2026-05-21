@@ -24,6 +24,19 @@ const TELEGRAM_STICKERS = [
   '\uD83C\uDF1F', '\uD83D\uDCAA', '\uD83D\uDE4C', '\uD83E\uDD1F', '\uD83E\uDD1D'
 ]
 
+const badgeStyles = (badge) => {
+  const map = {
+    'verified': { icon: '✅', bg: 'rgba(42,171,238,0.15)', color: '#2aabee', border: '1px solid rgba(42,171,238,0.3)' },
+    'samurai': { icon: '⚔️', bg: 'rgba(156,39,176,0.15)', color: '#9c27b0', border: '1px solid rgba(156,39,176,0.3)' },
+    'real madrid': { icon: '👑', bg: 'rgba(255,193,7,0.15)', color: '#ffc107', border: '1px solid rgba(255,193,7,0.3)' },
+    'barcelona': { icon: '🔵', bg: 'rgba(21,101,192,0.15)', color: '#1565c0', border: '1px solid rgba(21,101,192,0.3)' },
+    'mercedes': { icon: '⭐', bg: 'rgba(200,200,200,0.2)', color: '#e0e0e0', border: '1px solid rgba(200,200,200,0.3)' },
+    'bmw': { icon: '🌀', bg: 'rgba(52,152,219,0.15)', color: '#3498db', border: '1px solid rgba(52,152,219,0.3)' },
+  }
+  const key = Object.keys(map).find(k => badge.toLowerCase().includes(k))
+  return key ? map[key] : { icon: '🏅', bg: 'rgba(42,171,238,0.1)', color: 'var(--primary)', border: '1px solid rgba(42,171,238,0.2)' }
+}
+
 export default function Chat() {
   const { user, logout } = useAuth()
   const { dark, toggleTheme } = useTheme()
@@ -358,9 +371,10 @@ export default function Chat() {
                 </div>
                 <div className="chat-info">
                   <div className="chat-name">{getChatName(chat)}{!chat.isGroup && chat.participants?.find(p => p._id !== user._id)?.badges?.length > 0 && (
-                    <span style={{ fontSize: 11, marginLeft: 4, opacity: 0.7 }}>
-                      {chat.participants.find(p => p._id !== user._id).badges.slice(0, 2).join(' ')}
-                    </span>
+                    chat.participants.find(p => p._id !== user._id).badges.slice(0, 2).map((b, i) => {
+                      const s = badgeStyles(b)
+                      return <span key={i} style={{ fontSize: 11, marginLeft: i === 0 ? 4 : 0 }}>{s.icon || b}</span>
+                    })
                   )}</div>
                   <div className="chat-preview">
                     {chat.lastMessage ? (
@@ -412,7 +426,10 @@ export default function Chat() {
             <div className="chat-window-info" style={{ cursor: !activeChat.isGroup ? 'pointer' : 'default' }}
               onClick={() => { if (!activeChat.isGroup && otherUser) setShowUserProfile(true) }}>
               <h3>{getChatName(activeChat)} {!activeChat.isGroup && otherUser?.badges?.length > 0 && (
-                <span style={{ fontSize: 12, marginLeft: 4 }}>{otherUser.badges.slice(0, 3).join(' ')}</span>
+                otherUser.badges.slice(0, 3).map((b, i) => {
+                  const s = badgeStyles(b)
+                  return <span key={i} style={{ fontSize: 14, marginLeft: 2 }}>{s.icon || b}</span>
+                })
               )}</h3>
               <span className="status-text">
                 {typing[Object.keys(typing)[0]]
@@ -626,13 +643,21 @@ export default function Chat() {
             <h3>{otherUser.displayName || otherUser.username.replace(/^@/, '')}</h3>
             {otherUser.badges?.length > 0 && (
               <div className="up-badges" style={{ marginTop: 8, display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
-                {otherUser.badges.map((b, i) => (
-                  <span key={i} style={{
-                    padding: '2px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600,
-                    background: 'rgba(42,171,238,0.1)', color: 'var(--primary)',
-                    border: '1px solid rgba(42,171,238,0.2)'
-                  }}>{b}</span>
-                ))}
+                {otherUser.badges.map((b, i) => {
+                  const badgeStyle = badgeStyles(b)
+                  return (
+                    <span key={i} style={{
+                      padding: badgeStyle.pad || '2px 8px',
+                      borderRadius: 6, fontSize: 12, fontWeight: 600,
+                      background: badgeStyle.bg, color: badgeStyle.color,
+                      border: badgeStyle.border || 'none',
+                      display: 'inline-flex', alignItems: 'center', gap: 2
+                    }}>
+                      {badgeStyle.icon && <span>{badgeStyle.icon}</span>}
+                      {b === '✅' ? '' : b}
+                    </span>
+                  )
+                })}
               </div>
             )}
             <div className="up-username">@{otherUser.username.replace(/^@/, '')}</div>
