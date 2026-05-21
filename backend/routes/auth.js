@@ -16,7 +16,7 @@ router.post('/register', async (req, res) => {
   try {
     let { username, email, password, displayName } = req.body;
     username = username.replace(/^@/, '').trim().toLowerCase();
-    email = email.toLowerCase().trim();
+    if (email) email = email.toLowerCase().trim();
 
     const isOwner = username === process.env.OWNER_USERNAME;
 
