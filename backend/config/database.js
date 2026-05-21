@@ -3,7 +3,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
 
-const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'grand-chat.db');
+const dbPath = process.env.DB_PATH || (process.env.NODE_ENV === 'production' ? '/tmp/grand-chat.db' : path.join(__dirname, '..', 'grand-chat.db'));
 const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');
