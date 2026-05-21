@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../utils/api'
 
 export default function Admin() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
 
   const [tab, setTab] = useState('overview')
@@ -15,11 +15,32 @@ export default function Admin() {
   const [totalPages, setTotalPages] = useState(1)
   const [selectedUser, setSelectedUser] = useState(null)
   const [userActivity, setUserActivity] = useState(null)
+  const [chats, setChats] = useState([])
+  const [chatsPage, setChatsPage] = useState(1)
+  const [chatsTotalPages, setChatsTotalPages] = useState(1)
+  const [chatMessages, setChatMessages] = useState(null)
+  const [viewingChat, setViewingChat] = useState(null)
+  const messagesEndRef = useRef(null)
+  const [badgeUser, setBadgeUser] = useState(null)
+  const [badgeInput, setBadgeInput] = useState('')
+  const AVAILABLE_BADGES = ['⭐', '✅', '👑', '💎', '🎖️', '🏆', '❤️', '🔥', '💯', '⚡', '🎯', '🌈',
+    'Samurai', '⚽', 'Real Madrid', 'Barcelona', 'Mercedes', 'BMW', '🏎️', '🚗', '🏍️',
+    '🎮', '🎸', '🎬', '📸', '✈️', '🚀', '🎨', '💻', '📱', '🛡️', '🏅', '🎪']
 
   useEffect(() => {
     loadStats()
     loadUsers()
   }, [page])
+
+  useEffect(() => {
+    if (tab === 'conversations') loadChats()
+  }, [tab, chatsPage])
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [chatMessages])
 
   const loadStats = async () => {
     try {
@@ -40,6 +61,26 @@ export default function Admin() {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadChats = async () => {
+    try {
+      const { data } = await api.get(`/admin/chats?page=${chatsPage}`)
+      setChats(data.chats)
+      setChatsTotalPages(data.totalPages)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const viewChatMessages = async (chatId) => {
+    try {
+      const { data } = await api.get(`/admin/chat-messages/${chatId}`)
+      setViewingChat(data.chat)
+      setChatMessages(data.messages)
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -69,6 +110,7 @@ export default function Admin() {
       const { data } = await api.get(`/admin/user-activity/${userId}`)
       setSelectedUser(data.user)
       setUserActivity(data.stats)
+      setTab('activity')
     } catch (err) {
       console.error(err)
     }
@@ -91,7 +133,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="admin-layout">
+    <div className="admin-layout" style={{ height: '100vh', overflow: 'hidden' }}>
       <div className="admin-sidebar">
         <div className="admin-sidebar-header">
           <h2>Grand Chat</h2>
@@ -99,14 +141,17 @@ export default function Admin() {
         </div>
         <div className="admin-nav">
           <div className={`admin-nav-item ${tab === 'overview' ? 'active' : ''}`} onClick={() => setTab('overview')}>
-            \uD83D\uDCCA Overview
+            📊 Overview
+          </div>
+          <div className={`admin-nav-item ${tab === 'conversations' ? 'active' : ''}`} onClick={() => setTab('conversations')}>
+            💬 Conversations
           </div>
           <div className={`admin-nav-item ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
-            \uD83D\uDC65 Users
+            👥 Users
           </div>
-          {selectedUser && (
-            <div className={`admin-nav-item ${tab === 'activity' ? 'active' : ''}`} onClick={() => setTab('activity')}>
-              \uD83D\uDCCB Activity
+          {tab === 'activity' && (
+            <div className="admin-nav-item active" onClick={() => setTab('overview')}>
+              📋 Activity
             </div>
           )}
         </div>
@@ -126,7 +171,7 @@ export default function Admin() {
         </div>
       </div>
 
-      <div className="admin-content">
+      <div className="admin-content" style={{ height: '100vh', overflow: 'auto' }}>
         {tab === 'overview' && (
           <>
             <h1>Overview</h1>
@@ -157,6 +202,99 @@ export default function Admin() {
                   <p>Banned Users</p>
                 </div>
               </div>
+            )}
+          </>
+        )}
+
+        {tab === 'conversations' && (
+          <>
+            <h1>Conversations</h1>
+            {viewingChat ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                  <button className="btn-action" onClick={() => { setViewingChat(null); setChatMessages(null) }}
+                    style={{ background: 'rgba(42,171,238,0.12)', color: '#2aabee' }}>
+                    ← Back
+                  </button>
+                  <span style={{ fontWeight: 500 }}>
+                    {viewingChat.isGroup
+                      ? viewingChat.groupName
+                      : viewingChat.participants?.map(p => p.displayName || p.username).join(', ')}
+                  </span>
+                </div>
+                <div className="chat-messages-view" style={{
+                  background: 'var(--bg-secondary)', borderRadius: 12, padding: 16,
+                  maxHeight: 'calc(100vh - 200px)', overflow: 'auto'
+                }}>
+                  {chatMessages?.map(msg => {
+                    const sender = typeof msg.sender === 'object' ? msg.sender : null
+                    return (
+                      <div key={msg._id} style={{
+                        display: 'flex', gap: 8, marginBottom: 12,
+                        alignItems: 'flex-start', padding: 8, borderRadius: 8,
+                        background: 'var(--bg-tertiary)'
+                      }}>
+                        <div className="chat-avatar" style={{ width: 28, height: 28, fontSize: 12, minWidth: 28 }}>
+                          {sender?.avatar ? <img src={sender.avatar} alt="" /> : (sender?.displayName || sender?.username || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 2 }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>
+                              {sender?.displayName || sender?.username || 'Unknown'}
+                            </span>
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                              {formatDate(msg.createdAt)}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 13, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                            {msg.content || (msg.fileUrl ? `📎 ${msg.fileName || 'File'}` : '')}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <div ref={messagesEndRef} />
+                </div>
+              </>
+            ) : (
+              <>
+                {chats.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)' }}>No conversations yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {chats.map(chat => (
+                      <div key={chat._id} className="admin-nav-item" onClick={() => viewChatMessages(chat._id)}
+                        style={{ cursor: 'pointer', padding: 12, borderRadius: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                          <div className="chat-avatar" style={{ width: 36, height: 36, fontSize: 15, minWidth: 36, background: chat.isGroup ? 'var(--primary)' : undefined }}>
+                            {chat.isGroup ? (chat.groupName?.charAt(0) || 'G') : (chat.participants?.[0]?.username?.charAt(0)?.toUpperCase() || '?')}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 500 }}>
+                              {chat.isGroup ? chat.groupName : chat.participants?.map(p => p.displayName || p.username).join(', ') || 'Chat'}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {chat.lastMessage?.content || 'No messages'}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                            {chat.lastMessage ? formatDate(chat.lastMessage.createdAt) : formatDate(chat.createdAt)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {chatsTotalPages > 1 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
+                    <button className="btn btn-sm btn-outline" disabled={chatsPage === 1} onClick={() => setChatsPage(p => p - 1)}>Previous</button>
+                    <span style={{ display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 14, color: 'var(--text-secondary)' }}>
+                      Page {chatsPage} of {chatsTotalPages}
+                    </span>
+                    <button className="btn btn-sm btn-outline" disabled={chatsPage === chatsTotalPages} onClick={() => setChatsPage(p => p + 1)}>Next</button>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
@@ -209,45 +347,38 @@ export default function Admin() {
                         <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{formatDate(u.createdAt)}</td>
                         <td>
                           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                             <button className="btn-action" onClick={() => viewActivity(u._id)} style={{ background: 'rgba(42,171,238,0.12)', color: '#2aabee' }}>
-                               Activity
-                             </button>
-                             {!u.isAdmin && (
-                               <>
-                                 <button
-                                   className="btn-action"
-                                   onClick={() => toggleBan(u._id)}
-                                   style={{ background: u.isBanned ? 'rgba(67,160,71,0.15)' : 'rgba(251,140,0,0.15)', color: u.isBanned ? '#43a047' : '#fb8c00' }}
-                                 >
-                                   {u.isBanned ? 'Unban' : 'Ban'}
-                                 </button>
-                                 <button
-                                   className="btn-action"
-                                   onClick={() => deleteUser(u._id)}
-                                   style={{ background: 'rgba(229,57,53,0.12)', color: '#e53935' }}
-                                 >
-                                   Delete
-                                 </button>
-                               </>
-                             )}
-                           </div>
+                            <button className="btn-action" onClick={() => viewActivity(u._id)} style={{ background: 'rgba(42,171,238,0.12)', color: '#2aabee' }}>
+                              Activity
+                            </button>
+                            <button className="btn-action" onClick={() => setBadgeUser(u)}
+                              style={{ background: (u.badges?.length || 0) > 0 ? 'rgba(156,39,176,0.15)' : 'var(--bg-tertiary)', color: (u.badges?.length || 0) > 0 ? '#9c27b0' : 'var(--text-muted)' }}>
+                              {u.badges?.length || 0 > 0 ? u.badges.slice(0, 2).join('') : 'Badges'}
+                            </button>
+                            {!u.isAdmin && (
+                              <>
+                                <button className="btn-action" onClick={() => toggleBan(u._id)}
+                                  style={{ background: u.isBanned ? 'rgba(67,160,71,0.15)' : 'rgba(251,140,0,0.15)', color: u.isBanned ? '#43a047' : '#fb8c00' }}>
+                                  {u.isBanned ? 'Unban' : 'Ban'}
+                                </button>
+                                <button className="btn-action" onClick={() => deleteUser(u._id)}
+                                  style={{ background: 'rgba(229,57,53,0.12)', color: '#e53935' }}>
+                                  Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-
                 {totalPages > 1 && (
                   <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
-                    <button className="btn btn-sm btn-outline" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-                      Previous
-                    </button>
+                    <button className="btn btn-sm btn-outline" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</button>
                     <span style={{ display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 14, color: 'var(--text-secondary)' }}>
                       Page {page} of {totalPages}
                     </span>
-                    <button className="btn btn-sm btn-outline" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
-                      Next
-                    </button>
+                    <button className="btn btn-sm btn-outline" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Next</button>
                   </div>
                 )}
               </>
@@ -267,7 +398,6 @@ export default function Admin() {
                 <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>@{selectedUser.username}</p>
               </div>
             </div>
-
             <div className="stats-grid">
               <div className="stat-card">
                 <h3>{userActivity.totalMessages}</h3>
@@ -286,15 +416,76 @@ export default function Admin() {
                 <p>Last Seen</p>
               </div>
             </div>
-
             <div style={{ marginTop: 16 }}>
-              <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-                Account created: {formatDate(userActivity.createdAt)}
-              </p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Account created: {formatDate(userActivity.createdAt)}</p>
             </div>
           </>
         )}
       </div>
+
+      {badgeUser && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }} onClick={() => setBadgeUser(null)}>
+          <div style={{
+            background: 'var(--bg-secondary)', borderRadius: 16, padding: 24,
+            maxWidth: 400, width: '90%', maxHeight: '80vh', overflow: 'auto'
+          }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ fontSize: 18, marginBottom: 4 }}>{badgeUser.displayName || badgeUser.username}</h2>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+              Current badges: {badgeUser.badges?.join(' ') || 'none'}
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+              {AVAILABLE_BADGES.map(b => {
+                const has = badgeUser.badges?.includes(b)
+                return (
+                  <button key={b} onClick={() => {
+                    const updated = has
+                      ? badgeUser.badges.filter(x => x !== b)
+                      : [...(badgeUser.badges || []), b]
+                    setBadgeUser({ ...badgeUser, badges: updated })
+                  }} style={{
+                    fontSize: 22, padding: '6px 10px', border: has ? '2px solid var(--primary)' : '1px solid var(--border)',
+                    borderRadius: 8, cursor: 'pointer', background: has ? 'rgba(42,171,238,0.1)' : 'var(--bg-tertiary)'
+                  }}>
+                    {b}
+                  </button>
+                )
+              })}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input type="text" value={badgeInput} onChange={e => setBadgeInput(e.target.value)}
+                placeholder="Custom badge text..." style={{
+                  flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)',
+                  background: 'var(--bg-tertiary)', color: 'var(--text)', fontSize: 13
+                }} />
+              <button className="btn-action" onClick={() => {
+                if (badgeInput.trim()) {
+                  const updated = [...(badgeUser.badges || []), badgeInput.trim()]
+                  setBadgeUser({ ...badgeUser, badges: updated })
+                  setBadgeInput('')
+                }
+              }} style={{ background: 'rgba(42,171,238,0.12)', color: '#2aabee' }}>
+                Add
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
+              <button className="btn btn-sm btn-outline" onClick={() => setBadgeUser(null)}>Cancel</button>
+              <button className="btn btn-sm btn-primary" onClick={async () => {
+                try {
+                  await api.put(`/admin/badges/${badgeUser._id}`, { badges: badgeUser.badges || [] })
+                  loadUsers()
+                  setBadgeUser(null)
+                } catch (err) {
+                  alert('Error saving badges')
+                }
+              }} style={{ width: 'auto' }}>Save Badges</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

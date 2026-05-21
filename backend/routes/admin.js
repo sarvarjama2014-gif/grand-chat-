@@ -99,4 +99,48 @@ router.get('/user-activity/:id', async (req, res) => {
   }
 });
 
+router.get('/chats', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 20;
+    const chats = db.getAllChats(page, limit);
+    const total = db.countAllChats();
+    const chatsWithUsers = chats.map(chat => {
+      const participants = db.populateUsers(chat.participants);
+      let lastMessageData = null;
+      if (chat.lastMessage) {
+        lastMessageData = db.findMessageById(chat.lastMessage);
+      }
+      return { ...chat, participants, lastMessage: lastMessageData };
+    });
+    res.json({ chats: chatsWithUsers, total, page, totalPages: Math.ceil(total / limit) });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get('/chat-messages/:chatId', async (req, res) => {
+  try {
+    const chat = db.findChatById(req.params.chatId);
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
+    const messages = db.getMessagesWithSender(req.params.chatId, 1, 100);
+    const participants = db.populateUsers(chat.participants);
+    res.json({ chat: { ...chat, participants }, messages: messages.reverse() });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.put('/badges/:id', async (req, res) => {
+  try {
+    const { badges } = req.body;
+    const user = db.findUser(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const updated = db.updateUser(user.id, { badges: badges || [] });
+    res.json({ message: 'Badges updated', user: updated });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

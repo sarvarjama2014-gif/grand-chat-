@@ -20,10 +20,11 @@ db.exec(`
     bio TEXT DEFAULT '',
     isAdmin INTEGER DEFAULT 0,
     isBanned INTEGER DEFAULT 0,
-    isOnline INTEGER DEFAULT 0,
-    lastSeen TEXT,
-    createdAt TEXT,
-    updatedAt TEXT
+      isOnline INTEGER DEFAULT 0,
+      badges TEXT DEFAULT '[]',
+      lastSeen TEXT,
+      createdAt TEXT,
+      updatedAt TEXT
   );
   CREATE TABLE IF NOT EXISTS chats (
     id TEXT PRIMARY KEY,
@@ -67,6 +68,7 @@ function rowToUser(row) {
     isAdmin: !!row.isAdmin,
     isBanned: !!row.isBanned,
     isOnline: !!row.isOnline,
+    badges: JSON.parse(row.badges || '[]'),
     lastSeen: row.lastSeen,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt
@@ -126,7 +128,7 @@ const stmtOnlineUsersCount = db.prepare('SELECT COUNT(*) as count FROM users WHE
 const stmtAllChatsCount = db.prepare('SELECT COUNT(*) as count FROM chats');
 const stmtGroupsCount = db.prepare('SELECT COUNT(*) as count FROM chats WHERE isGroup = 1');
 const stmtAllMessagesCount = db.prepare('SELECT COUNT(*) as count FROM messages');
-const stmtInsertUser = db.prepare('INSERT INTO users (id, username, email, password, displayName, isAdmin, lastSeen, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+const stmtInsertUser = db.prepare('INSERT INTO users (id, username, email, password, displayName, isAdmin, badges, lastSeen, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
 const stmtInsertChat = db.prepare('INSERT INTO chats (id, participants, isGroup, groupName, groupAdmin, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)');
 const stmtInsertMessage = db.prepare('INSERT INTO messages (id, chatId, sender, content, messageType, fileUrl, fileName, fileSize, readBy, deliveredTo, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
 const stmtDeleteUser = db.prepare('DELETE FROM users WHERE id = ?');
@@ -138,6 +140,7 @@ const stmtCountUserMessages = db.prepare('SELECT COUNT(*) as count FROM messages
 const stmtChatsByUser = db.prepare('SELECT * FROM chats WHERE participants LIKE ? ORDER BY updatedAt DESC');
 const stmtMessagesByChat = db.prepare('SELECT * FROM messages WHERE chatId = ? ORDER BY createdAt DESC LIMIT ? OFFSET ?');
 const stmtAllUsers = db.prepare('SELECT * FROM users ORDER BY createdAt DESC LIMIT ? OFFSET ?');
+const stmtAllChats = db.prepare('SELECT * FROM chats ORDER BY updatedAt DESC LIMIT ? OFFSET ?');
 
 const dbh = {
   findUser(id) {
@@ -166,7 +169,7 @@ const dbh = {
     const id = uuidv4();
     const now = new Date().toISOString();
     const hashedPassword = bcrypt.hashSync(password, 10);
-    stmtInsertUser.run(id, username, email || '', hashedPassword, displayName || username, isAdmin ? 1 : 0, now, now, now);
+    stmtInsertUser.run(id, username, email || '', hashedPassword, displayName || username, isAdmin ? 1 : 0, '[]', now, now, now);
     return sanitizeUser(rowToUser(stmtFindUser.get(id)));
   },
 
@@ -182,8 +185,8 @@ const dbh = {
       } else if (key === 'isAdmin' || key === 'isBanned' || key === 'isOnline') {
         fields.push(`${key} = ?`);
         values.push(value ? 1 : 0);
-      } else if (key === 'participants') {
-        fields.push('participants = ?');
+      } else if (key === 'badges' || key === 'participants') {
+        fields.push(`${key} = ?`);
         values.push(JSON.stringify(value));
       } else {
         fields.push(`${key} = ?`);
@@ -274,6 +277,12 @@ const dbh = {
 
   countAllChats() {
     return stmtAllChatsCount.get().count;
+  },
+
+  getAllChats(page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    const rows = stmtAllChats.all(limit, skip);
+    return rows.map(rowToChat);
   },
 
   countGroups() {
