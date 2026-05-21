@@ -208,29 +208,29 @@ export default function Admin() {
                         </td>
                         <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{formatDate(u.createdAt)}</td>
                         <td>
-                          <div style={{ display: 'flex', gap: 4 }}>
-                            <button className="btn btn-sm btn-outline" onClick={() => viewActivity(u._id)} style={{ padding: '4px 8px', fontSize: 11 }}>
-                              Activity
-                            </button>
-                            {u.username !== 'grandadmin' && (
-                              <>
-                                <button
-                                  className="btn btn-sm"
-                                  onClick={() => toggleBan(u._id)}
-                                  style={{ padding: '4px 8px', fontSize: 11, background: u.isBanned ? 'var(--success)' : 'var(--warning)', color: 'white' }}
-                                >
-                                  {u.isBanned ? 'Unban' : 'Ban'}
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-danger"
-                                  onClick={() => deleteUser(u._id)}
-                                  style={{ padding: '4px 8px', fontSize: 11 }}
-                                >
-                                  Delete
-                                </button>
-                              </>
-                            )}
-                          </div>
+                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                             <button className="btn-action" onClick={() => viewActivity(u._id)} style={{ background: 'rgba(42,171,238,0.12)', color: '#2aabee' }}>
+                               Activity
+                             </button>
+                             {!u.isAdmin && (
+                               <>
+                                 <button
+                                   className="btn-action"
+                                   onClick={() => toggleBan(u._id)}
+                                   style={{ background: u.isBanned ? 'rgba(67,160,71,0.15)' : 'rgba(251,140,0,0.15)', color: u.isBanned ? '#43a047' : '#fb8c00' }}
+                                 >
+                                   {u.isBanned ? 'Unban' : 'Ban'}
+                                 </button>
+                                 <button
+                                   className="btn-action"
+                                   onClick={() => deleteUser(u._id)}
+                                   style={{ background: 'rgba(229,57,53,0.12)', color: '#e53935' }}
+                                 >
+                                   Delete
+                                 </button>
+                               </>
+                             )}
+                           </div>
                         </td>
                       </tr>
                     ))}

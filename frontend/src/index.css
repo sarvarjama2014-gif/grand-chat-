@@ -83,6 +83,7 @@ input:focus { outline: none; }
 .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
 .btn-outline:hover { background: var(--bg-hover); }
 .btn-sm { padding: 6px 14px; font-size: 13px; width: auto; }
+.btn-action { padding: 4px 12px; font-size: 11px; width: auto; border-radius: 6px; font-weight: 600; border: none; cursor: pointer; transition: all .15s; white-space: nowrap; }
 .auth-footer { text-align: center; margin-top: 18px; font-size: 14px; color: var(--text-secondary); }
 .auth-footer a { color: var(--primary); font-weight: 500; }
 .error-msg { background: rgba(229,57,53,0.1); border: 1px solid rgba(229,57,53,0.3); color: var(--danger); padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
