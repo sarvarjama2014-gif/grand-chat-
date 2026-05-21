@@ -54,6 +54,12 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_messages_chatId ON messages(chatId);
 `);
 
+try {
+  db.exec("ALTER TABLE users ADD COLUMN badges TEXT DEFAULT '[]'");
+} catch (e) {
+  // column already exists
+}
+
 function rowToUser(row) {
   if (!row) return null;
   return {
