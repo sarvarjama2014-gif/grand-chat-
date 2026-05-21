@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db');
+require('./config/database');
 const setupSocket = require('./socket');
 
 dotenv.config();
@@ -47,8 +47,6 @@ app.get('*', (req, res) => {
 });
 
 setupSocket(io);
-
-connectDB();
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

@@ -1,7 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const Message = require('../models/Message');
-const Chat = require('../models/Chat');
+const db = require('../config/database');
 
 const onlineUsers = new Map();
 
@@ -13,7 +11,7 @@ const setupSocket = (io) => {
         return next(new Error('Authentication error'));
       }
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.id).select('-password');
+      const user = db.findUser(decoded.id);
       if (!user) {
         return next(new Error('User not found'));
       }
@@ -26,17 +24,17 @@ const setupSocket = (io) => {
 
   io.on('connection', async (socket) => {
     const user = socket.user;
-    onlineUsers.set(user._id.toString(), socket.id);
+    onlineUsers.set(user.id, socket.id);
 
-    await User.findByIdAndUpdate(user._id, { isOnline: true, lastSeen: new Date() });
+    db.updateUser(user.id, { isOnline: true, lastSeen: new Date().toISOString() });
 
-    socket.join(user._id.toString());
+    socket.join(user.id);
 
-    io.emit('user-status', { userId: user._id, isOnline: true });
+    io.emit('user-status', { userId: user.id, isOnline: true });
 
-    const chats = await Chat.find({ participants: user._id });
+    const chats = db.findChatsByUser(user.id);
     chats.forEach(chat => {
-      socket.join(`chat_${chat._id}`);
+      socket.join(`chat_${chat.id}`);
     });
 
     socket.on('join-chat', (chatId) => {
@@ -51,28 +49,26 @@ const setupSocket = (io) => {
       try {
         const { chatId, content, messageType } = data;
 
-        const chat = await Chat.findById(chatId);
-        if (!chat || !chat.participants.includes(user._id)) {
+        const chat = db.findChatById(chatId);
+        if (!chat || !chat.participants.includes(user.id)) {
           return callback({ error: 'Not a participant' });
         }
 
-        const message = await Message.create({
-          chat: chatId,
-          sender: user._id,
+        const message = db.createMessage({
+          chatId,
+          sender: user.id,
           content: content || '',
           messageType: messageType || 'text',
-          readBy: [user._id],
-          deliveredTo: [user._id]
+          readBy: [user.id],
+          deliveredTo: [user.id]
         });
 
-        chat.lastMessage = message._id;
-        await chat.save();
+        db.updateChat(chatId, { lastMessage: message.id });
 
-        const populatedMessage = await Message.findById(message._id)
-          .populate('sender', 'username displayName avatar');
+        const populatedMessage = db.populateMessageSender(message);
 
         chat.participants.forEach(participantId => {
-          if (participantId.toString() !== user._id.toString()) {
+          if (participantId !== user.id) {
             io.to(`user_${participantId}`).emit('new-message', {
               message: populatedMessage,
               chatId
@@ -91,13 +87,13 @@ const setupSocket = (io) => {
     socket.on('mark-read', async (data) => {
       try {
         const { messageId } = data;
-        const message = await Message.findById(messageId);
-        if (message && !message.readBy.includes(user._id)) {
-          message.readBy.push(user._id);
-          await message.save();
+        const message = db.findMessageById(messageId);
+        if (message && !message.readBy.includes(user.id)) {
+          message.readBy.push(user.id);
+          db.updateMessage(message.id, { readBy: message.readBy });
           io.to(`chat_${message.chat}`).emit('message-read', {
             messageId,
-            userId: user._id
+            userId: user.id
           });
         }
       } catch (error) {
@@ -109,7 +105,7 @@ const setupSocket = (io) => {
       const { chatId } = data;
       socket.to(`chat_${chatId}`).emit('user-typing', {
         chatId,
-        userId: user._id,
+        userId: user.id,
         username: user.username
       });
     });
@@ -118,7 +114,7 @@ const setupSocket = (io) => {
       const { chatId } = data;
       socket.to(`chat_${chatId}`).emit('user-stop-typing', {
         chatId,
-        userId: user._id
+        userId: user.id
       });
     });
 
@@ -127,7 +123,7 @@ const setupSocket = (io) => {
       const targetSocketId = onlineUsers.get(to);
       if (targetSocketId) {
         io.to(targetSocketId).emit('incoming-call', {
-          from: user._id,
+          from: user.id,
           fromUsername: user.username,
           fromDisplayName: user.displayName,
           fromAvatar: user.avatar,
@@ -148,7 +144,7 @@ const setupSocket = (io) => {
       const { to } = data;
       const targetSocketId = onlineUsers.get(to);
       if (targetSocketId) {
-        io.to(targetSocketId).emit('call-rejected', { from: user._id });
+        io.to(targetSocketId).emit('call-rejected', { from: user.id });
       }
     });
 
@@ -156,7 +152,7 @@ const setupSocket = (io) => {
       const { to } = data;
       const targetSocketId = onlineUsers.get(to);
       if (targetSocketId) {
-        io.to(targetSocketId).emit('call-ended', { from: user._id });
+        io.to(targetSocketId).emit('call-ended', { from: user.id });
       }
     });
 
@@ -164,7 +160,7 @@ const setupSocket = (io) => {
       const { to, candidate } = data;
       const targetSocketId = onlineUsers.get(to);
       if (targetSocketId) {
-        io.to(targetSocketId).emit('ice-candidate', { from: user._id, candidate });
+        io.to(targetSocketId).emit('ice-candidate', { from: user.id, candidate });
       }
     });
 
@@ -172,11 +168,11 @@ const setupSocket = (io) => {
       const { chatId, message } = data;
       if (!chatId || !message) return;
       try {
-        const chat = await Chat.findById(chatId);
+        const chat = db.findChatById(chatId);
         if (chat) {
           chat.participants.forEach(pid => {
-            if (pid.toString() !== user._id.toString()) {
-              const targetSocketId = onlineUsers.get(pid.toString());
+            if (pid !== user.id) {
+              const targetSocketId = onlineUsers.get(pid);
               if (targetSocketId) {
                 io.to(targetSocketId).emit('message-received', message);
               }
@@ -192,14 +188,14 @@ const setupSocket = (io) => {
       const { to, muted } = data;
       const targetSocketId = onlineUsers.get(to);
       if (targetSocketId) {
-        io.to(targetSocketId).emit('mic-toggle', { from: user._id, muted });
+        io.to(targetSocketId).emit('mic-toggle', { from: user.id, muted });
       }
     });
 
     socket.on('disconnect', async () => {
-      onlineUsers.delete(user._id.toString());
-      await User.findByIdAndUpdate(user._id, { isOnline: false, lastSeen: new Date() });
-      io.emit('user-status', { userId: user._id, isOnline: false });
+      onlineUsers.delete(user.id);
+      db.updateUser(user.id, { isOnline: false, lastSeen: new Date().toISOString() });
+      io.emit('user-status', { userId: user.id, isOnline: false });
     });
   });
 };

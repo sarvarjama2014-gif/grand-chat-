@@ -1,6 +1,5 @@
 const express = require('express');
-const Message = require('../models/Message');
-const Chat = require('../models/Chat');
+const db = require('../config/database');
 const { protect } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
@@ -24,23 +23,17 @@ const upload = multer({
 
 router.get('/:chatId', protect, async (req, res) => {
   try {
-    const chat = await Chat.findById(req.params.chatId);
+    const chat = db.findChatById(req.params.chatId);
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
-    if (!chat.participants.includes(req.user._id)) {
+    if (!chat.participants.includes(req.user.id)) {
       return res.status(403).json({ message: 'Not a participant' });
     }
 
     const page = parseInt(req.query.page) || 1;
     const limit = 50;
-    const skip = (page - 1) * limit;
 
-    const messages = await Message.find({ chat: req.params.chatId })
-      .populate('sender', 'username displayName avatar')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Message.countDocuments({ chat: req.params.chatId });
+    const messages = db.getMessagesWithSender(req.params.chatId, page, limit);
+    const total = db.countMessages(req.params.chatId);
 
     res.json({
       messages: messages.reverse(),
@@ -57,19 +50,19 @@ router.post('/', protect, upload.single('file'), async (req, res) => {
   try {
     const { chatId, content, messageType } = req.body;
 
-    const chat = await Chat.findById(chatId);
+    const chat = db.findChatById(chatId);
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
-    if (!chat.participants.includes(req.user._id)) {
+    if (!chat.participants.includes(req.user.id)) {
       return res.status(403).json({ message: 'Not a participant' });
     }
 
     const messageData = {
-      chat: chatId,
-      sender: req.user._id,
+      chatId,
+      sender: req.user.id,
       content: content || '',
       messageType: messageType || 'text',
-      readBy: [req.user._id],
-      deliveredTo: [req.user._id]
+      readBy: [req.user.id],
+      deliveredTo: [req.user.id]
     };
 
     if (req.file) {
@@ -84,13 +77,11 @@ router.post('/', protect, upload.single('file'), async (req, res) => {
       else messageData.messageType = 'file';
     }
 
-    const message = await Message.create(messageData);
+    const message = db.createMessage(messageData);
 
-    chat.lastMessage = message._id;
-    await chat.save();
+    db.updateChat(chatId, { lastMessage: message.id });
 
-    const populatedMessage = await Message.findById(message._id)
-      .populate('sender', 'username displayName avatar');
+    const populatedMessage = db.populateMessageSender(message);
 
     res.status(201).json(populatedMessage);
   } catch (error) {
@@ -100,12 +91,12 @@ router.post('/', protect, upload.single('file'), async (req, res) => {
 
 router.put('/read/:messageId', protect, async (req, res) => {
   try {
-    const message = await Message.findById(req.params.messageId);
+    const message = db.findMessageById(req.params.messageId);
     if (!message) return res.status(404).json({ message: 'Message not found' });
 
-    if (!message.readBy.includes(req.user._id)) {
-      message.readBy.push(req.user._id);
-      await message.save();
+    if (!message.readBy.includes(req.user.id)) {
+      message.readBy.push(req.user.id);
+      db.updateMessage(message.id, { readBy: message.readBy });
     }
 
     res.json(message);
@@ -116,12 +107,12 @@ router.put('/read/:messageId', protect, async (req, res) => {
 
 router.put('/delivered/:messageId', protect, async (req, res) => {
   try {
-    const message = await Message.findById(req.params.messageId);
+    const message = db.findMessageById(req.params.messageId);
     if (!message) return res.status(404).json({ message: 'Message not found' });
 
-    if (!message.deliveredTo.includes(req.user._id)) {
-      message.deliveredTo.push(req.user._id);
-      await message.save();
+    if (!message.deliveredTo.includes(req.user.id)) {
+      message.deliveredTo.push(req.user.id);
+      db.updateMessage(message.id, { deliveredTo: message.deliveredTo });
     }
 
     res.json(message);
@@ -132,16 +123,14 @@ router.put('/delivered/:messageId', protect, async (req, res) => {
 
 router.delete('/chat/:chatId', protect, async (req, res) => {
   try {
-    const chat = await Chat.findById(req.params.chatId);
+    const chat = db.findChatById(req.params.chatId);
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
-    if (!chat.participants.includes(req.user._id)) {
+    if (!chat.participants.includes(req.user.id)) {
       return res.status(403).json({ message: 'Not a participant' });
     }
 
-    await Message.deleteMany({ chat: chat._id });
-
-    chat.lastMessage = null;
-    await chat.save();
+    db.deleteMessagesByChat(chat.id);
+    db.updateChat(chat.id, { lastMessage: null });
 
     res.json({ message: 'Chat cleared' });
   } catch (error) {

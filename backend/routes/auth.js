@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const bcrypt = require('bcryptjs');
+const db = require('../config/database');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -19,14 +20,15 @@ router.post('/register', async (req, res) => {
 
     const isOwner = username === process.env.OWNER_USERNAME;
 
-    let user = await User.findOne({ username });
+    let user = db.findUserByUsername(username);
     if (user) {
-      user.password = password;
-      user.displayName = displayName || username;
-      user.isAdmin = isOwner || user.isAdmin;
-      await user.save();
+      user = db.updateUser(user.id, {
+        password,
+        displayName: displayName || username,
+        isAdmin: isOwner || user.isAdmin
+      });
     } else {
-      user = await User.create({
+      user = db.createUser({
         username,
         email,
         password,
@@ -35,11 +37,11 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user.id);
 
     res.status(201).json({
       token,
-      user: user.toJSON()
+      user
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -51,9 +53,7 @@ router.post('/login', async (req, res) => {
     let { username, password } = req.body;
     username = username.replace(/^@/, '').trim().toLowerCase();
 
-    const user = await User.findOne({
-      $or: [{ username }, { email: username }]
-    });
+    const user = db.findUserByUsernameOrEmail(username);
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -63,16 +63,17 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ message: 'Your account has been banned' });
     }
 
-    const isMatch = await user.matchPassword(password);
+    const isMatch = bcrypt.compareSync(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = generateToken(user._id);
+    const token = generateToken(user.id);
+    const { password: _, ...userData } = user;
 
     res.json({
       token,
-      user: user.toJSON()
+      user: userData
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -85,7 +86,7 @@ router.get('/me', protect, async (req, res) => {
 
 router.post('/logout', protect, async (req, res) => {
   try {
-    await User.findByIdAndUpdate(req.user._id, { lastSeen: new Date() });
+    db.updateUser(req.user.id, { lastSeen: new Date().toISOString() });
     res.json({ message: 'Logged out' });
   } catch (error) {
     res.status(500).json({ message: error.message });
