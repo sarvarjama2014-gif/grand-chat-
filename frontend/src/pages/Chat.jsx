@@ -357,7 +357,11 @@ export default function Chat() {
                   {getChatAvatar(chat) ? <img src={getChatAvatar(chat)} alt="" /> : getChatInitials(chat)}
                 </div>
                 <div className="chat-info">
-                  <div className="chat-name">{getChatName(chat)}</div>
+                  <div className="chat-name">{getChatName(chat)}{!chat.isGroup && chat.participants?.find(p => p._id !== user._id)?.badges?.length > 0 && (
+                    <span style={{ fontSize: 11, marginLeft: 4, opacity: 0.7 }}>
+                      {chat.participants.find(p => p._id !== user._id).badges.slice(0, 2).join(' ')}
+                    </span>
+                  )}</div>
                   <div className="chat-preview">
                     {chat.lastMessage ? (
                       chat.lastMessage.messageType === 'image' ? '\uD83D\uDDBC Photo' :
@@ -407,7 +411,9 @@ export default function Chat() {
             </div>
             <div className="chat-window-info" style={{ cursor: !activeChat.isGroup ? 'pointer' : 'default' }}
               onClick={() => { if (!activeChat.isGroup && otherUser) setShowUserProfile(true) }}>
-              <h3>{getChatName(activeChat)}</h3>
+              <h3>{getChatName(activeChat)} {!activeChat.isGroup && otherUser?.badges?.length > 0 && (
+                <span style={{ fontSize: 12, marginLeft: 4 }}>{otherUser.badges.slice(0, 3).join(' ')}</span>
+              )}</h3>
               <span className="status-text">
                 {typing[Object.keys(typing)[0]]
                   ? `typing...`
@@ -618,6 +624,17 @@ export default function Chat() {
               {otherUser.avatar ? <img src={otherUser.avatar} alt="" /> : (otherUser.displayName || otherUser.username.replace(/^@/, '')).charAt(0).toUpperCase()}
             </div>
             <h3>{otherUser.displayName || otherUser.username.replace(/^@/, '')}</h3>
+            {otherUser.badges?.length > 0 && (
+              <div className="up-badges" style={{ marginTop: 8, display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
+                {otherUser.badges.map((b, i) => (
+                  <span key={i} style={{
+                    padding: '2px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                    background: 'rgba(42,171,238,0.1)', color: 'var(--primary)',
+                    border: '1px solid rgba(42,171,238,0.2)'
+                  }}>{b}</span>
+                ))}
+              </div>
+            )}
             <div className="up-username">@{otherUser.username.replace(/^@/, '')}</div>
             {otherUser.bio && <div className="up-bio">{otherUser.bio}</div>}
             <div className="up-status">
@@ -630,6 +647,37 @@ export default function Chat() {
                 📞
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showGroupModal && (
+        <div className="modal-overlay" onClick={() => setShowGroupModal(false)}>
+          <div className="user-profile-modal" onClick={e => e.stopPropagation()} style={{ maxHeight: '80vh', overflow: 'auto' }}>
+            <h3 style={{ textAlign: 'center', marginBottom: 16 }}>New Group</h3>
+            <input type="text" placeholder="Group name..." value={groupName}
+              onChange={e => setGroupName(e.target.value)}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)',
+                background: 'var(--bg-tertiary)', color: 'var(--text)', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }} />
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>Members ({groupMembers.length}):</p>
+            <div style={{ maxHeight: 200, overflow: 'auto' }}>
+              {availableUsers.filter(u => u._id !== user._id).map(u => (
+                <div key={u._id} className="admin-nav-item" onClick={() => toggleGroupMember(u._id)}
+                  style={{ padding: '8px 12px', cursor: 'pointer', background: groupMembers.includes(u._id) ? 'rgba(42,171,238,0.1)' : undefined }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className="chat-avatar" style={{ width: 28, height: 28, fontSize: 12 }}>
+                      {u.avatar ? <img src={u.avatar} alt="" /> : (u.displayName || u.username).charAt(0).toUpperCase()}
+                    </div>
+                    <span style={{ fontSize: 13 }}>{u.displayName || u.username}</span>
+                    {groupMembers.includes(u._id) && <span style={{ marginLeft: 'auto', color: 'var(--primary)' }}>✓</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button className="btn btn-primary" onClick={createGroup} disabled={!groupName.trim() || groupMembers.length < 2}
+              style={{ marginTop: 12 }}>
+              Create Group
+            </button>
           </div>
         </div>
       )}
