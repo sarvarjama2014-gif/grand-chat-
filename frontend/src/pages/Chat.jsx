@@ -82,6 +82,7 @@ export default function Chat() {
   const audioChunksRef = useRef([])
   const recordingTimerRef = useRef(null)
   const sidebarRef = useRef(null)
+  const addIceCandidateRef = useRef(null)
 
   useEffect(() => {
     document.documentElement.style.setProperty('--primary', accentColor)
@@ -120,7 +121,9 @@ export default function Chat() {
       'call-rejected': () => { setCallUser(null); alert('Call rejected') },
       'call-ended': () => { setCallUser(null); setIncomingCall(null) },
       'ice-candidate': (data) => {
-        setCallUser(prev => prev ? { ...prev, iceCandidate: data.candidate } : prev);
+        if (addIceCandidateRef.current) {
+          addIceCandidateRef.current(data.candidate)
+        }
       },
     }
     Object.entries(handlers).forEach(([ev, fn]) => socket.on(ev, fn))
@@ -636,8 +639,8 @@ export default function Chat() {
         </div>
       )}
 
-      {incomingCall && <CallModal caller={incomingCall} onAccept={acceptCall} onReject={rejectCall} incoming socket={socket} peerUser={incomingCall.from} />}
-      {callUser && <CallModal user={callUser} onEnd={endCallWithSocket} socket={callUser.socket || socket} peerUser={callUser.peerUser} />}
+      {incomingCall && <CallModal caller={incomingCall} onAccept={acceptCall} onReject={rejectCall} incoming socket={socket} peerUser={incomingCall.from} addIceCandidateRef={addIceCandidateRef} />}
+      {callUser && <CallModal user={callUser} onEnd={endCallWithSocket} socket={callUser.socket || socket} peerUser={callUser.peerUser} addIceCandidateRef={addIceCandidateRef} />}
 
       {/* User Profile Modal */}
       {showUserProfile && otherUser && (

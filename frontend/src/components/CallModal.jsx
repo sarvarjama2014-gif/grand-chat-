@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 
-export default function CallModal({ caller, incoming, user, onAccept, onReject, onEnd, socket, peerUser }) {
+export default function CallModal({ caller, incoming, user, onAccept, onReject, onEnd, socket, peerUser, addIceCandidateRef }) {
   const [muted, setMuted] = useState(false)
   const [speakerOn, setSpeakerOn] = useState(true)
   const [timer, setTimer] = useState(0)
@@ -10,12 +10,38 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
   const timerRef = useRef(null)
   const pendingCandidates = useRef([])
 
+  const startTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = setInterval(() => setTimer(t => t + 1), 1000)
+  }
+
+  useEffect(() => {
+    if (!addIceCandidateRef) return
+    addIceCandidateRef.current = (candidate) => {
+      if (!pcRef.current) return
+      if (pcRef.current.remoteDescription) {
+        try { pcRef.current.addIceCandidate(new RTCIceCandidate(candidate)) } catch (e) {}
+      } else {
+        pendingCandidates.current.push(candidate)
+      }
+    }
+    return () => { addIceCandidateRef.current = null }
+  }, [])
+
   const startWebRTC = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
       if (localAudioRef.current) localAudioRef.current.srcObject = stream
 
-      const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
+      const pc = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
+        ]
+      })
       pcRef.current = pc
 
       stream.getTracks().forEach(track => pc.addTrack(track, stream))
@@ -32,10 +58,7 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
 
       if (user?.incomingSignal) {
         await pc.setRemoteDescription(new RTCSessionDescription(user.incomingSignal))
-        for (const c of pendingCandidates.current) {
-          try { pc.addIceCandidate(new RTCIceCandidate(c)) } catch {}
-        }
-        pendingCandidates.current = []
+        flushPending()
         const answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
         if (socket && peerUser) {
@@ -54,9 +77,13 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
     }
   }
 
-  const startTimer = () => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    timerRef.current = setInterval(() => setTimer(t => t + 1), 1000)
+  const flushPending = () => {
+    for (const c of pendingCandidates.current) {
+      if (pcRef.current) {
+        try { pcRef.current.addIceCandidate(new RTCIceCandidate(c)) } catch {}
+      }
+    }
+    pendingCandidates.current = []
   }
 
   useEffect(() => {
@@ -80,10 +107,7 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
     const doSet = async () => {
       try {
         await pcRef.current.setRemoteDescription(new RTCSessionDescription(user.signal))
-        for (const c of pendingCandidates.current) {
-          try { pcRef.current.addIceCandidate(new RTCIceCandidate(c)) } catch {}
-        }
-        pendingCandidates.current = []
+        flushPending()
         startTimer()
       } catch (e) {
         console.error('setRemote error:', e)
@@ -91,15 +115,6 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
     }
     doSet()
   }, [user?.signal])
-
-  useEffect(() => {
-    if (!user?.iceCandidate || !pcRef.current) return
-    if (pcRef.current.remoteDescription) {
-      pcRef.current.addIceCandidate(new RTCIceCandidate(user.iceCandidate)).catch(() => {})
-    } else {
-      pendingCandidates.current.push(user.iceCandidate)
-    }
-  }, [user?.iceCandidate])
 
   const formatTimer = (s) => {
     const m = Math.floor(s / 60)
