@@ -26,12 +26,12 @@ const TELEGRAM_STICKERS = [
 
 const badgeStyles = (badge) => {
   const map = {
-    'verified': { icon: '✅', bg: 'rgba(42,171,238,0.15)', color: '#2aabee', border: '1px solid rgba(42,171,238,0.3)' },
+    'verified': { icon: '✅', img: '/uploads/badges/verified.svg', bg: 'rgba(42,171,238,0.15)', color: '#2aabee', border: '1px solid rgba(42,171,238,0.3)' },
     'samurai': { icon: '⚔️', bg: 'rgba(156,39,176,0.15)', color: '#9c27b0', border: '1px solid rgba(156,39,176,0.3)' },
-    'real madrid': { icon: '👑', bg: 'rgba(255,193,7,0.15)', color: '#ffc107', border: '1px solid rgba(255,193,7,0.3)' },
-    'barcelona': { icon: '🔵', bg: 'rgba(21,101,192,0.15)', color: '#1565c0', border: '1px solid rgba(21,101,192,0.3)' },
-    'mercedes': { icon: '⭐', bg: 'rgba(200,200,200,0.2)', color: '#e0e0e0', border: '1px solid rgba(200,200,200,0.3)' },
-    'bmw': { icon: '🌀', bg: 'rgba(52,152,219,0.15)', color: '#3498db', border: '1px solid rgba(52,152,219,0.3)' },
+    'real madrid': { icon: '👑', img: '/uploads/badges/real-madrid.svg', bg: 'rgba(255,193,7,0.15)', color: '#ffc107', border: '1px solid rgba(255,193,7,0.3)' },
+    'barcelona': { icon: '🔵', img: '/uploads/badges/barcelona.svg', bg: 'rgba(21,101,192,0.15)', color: '#1565c0', border: '1px solid rgba(21,101,192,0.3)' },
+    'mercedes': { icon: '⭐', img: '/uploads/badges/mercedes.svg', bg: 'rgba(200,200,200,0.2)', color: '#e0e0e0', border: '1px solid rgba(200,200,200,0.3)' },
+    'bmw': { icon: '🌀', img: '/uploads/badges/bmw.svg', bg: 'rgba(52,152,219,0.15)', color: '#3498db', border: '1px solid rgba(52,152,219,0.3)' },
   }
   const key = Object.keys(map).find(k => badge.toLowerCase().includes(k))
   return key ? map[key] : { icon: '🏅', bg: 'rgba(42,171,238,0.1)', color: 'var(--primary)', border: '1px solid rgba(42,171,238,0.2)' }
@@ -373,6 +373,7 @@ export default function Chat() {
                   <div className="chat-name">{getChatName(chat)}{!chat.isGroup && chat.participants?.find(p => p._id !== user._id)?.badges?.length > 0 && (
                     chat.participants.find(p => p._id !== user._id).badges.slice(0, 2).map((b, i) => {
                       const s = badgeStyles(b)
+                      if (s.img) return <img key={i} src={s.img} alt="" style={{ width: 14, height: 14, marginLeft: i === 0 ? 4 : 0, verticalAlign: 'middle' }} />
                       return <span key={i} style={{ fontSize: 11, marginLeft: i === 0 ? 4 : 0 }}>{s.icon || b}</span>
                     })
                   )}</div>
@@ -428,6 +429,7 @@ export default function Chat() {
               <h3>{getChatName(activeChat)} {!activeChat.isGroup && otherUser?.badges?.length > 0 && (
                 otherUser.badges.slice(0, 3).map((b, i) => {
                   const s = badgeStyles(b)
+                  if (s.img) return <img key={i} src={s.img} alt="" style={{ width: 16, height: 16, marginLeft: 2, verticalAlign: 'middle' }} />
                   return <span key={i} style={{ fontSize: 14, marginLeft: 2 }}>{s.icon || b}</span>
                 })
               )}</h3>
@@ -653,8 +655,8 @@ export default function Chat() {
                       border: badgeStyle.border || 'none',
                       display: 'inline-flex', alignItems: 'center', gap: 2
                     }}>
-                      {badgeStyle.icon && <span>{badgeStyle.icon}</span>}
-                      {b === '✅' ? '' : b}
+                      {badgeStyle.img ? <img src={badgeStyle.img} alt="" style={{ width: 16, height: 16 }} /> : badgeStyle.icon && <span>{badgeStyle.icon}</span>}
+                      {b === '✅' ? '' : (!badgeStyle.img && b)}
                     </span>
                   )
                 })}

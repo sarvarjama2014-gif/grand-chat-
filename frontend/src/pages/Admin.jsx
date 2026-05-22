@@ -5,12 +5,12 @@ import api from '../utils/api'
 
 const badgeStyles = (badge) => {
   const map = {
-    'verified': { icon: '✅', bg: 'rgba(42,171,238,0.15)', color: '#2aabee' },
+    'verified': { icon: '✅', img: '/uploads/badges/verified.svg', bg: 'rgba(42,171,238,0.15)', color: '#2aabee' },
     'samurai': { icon: '⚔️', bg: 'rgba(156,39,176,0.15)', color: '#9c27b0' },
-    'real madrid': { icon: '👑', bg: 'rgba(255,193,7,0.15)', color: '#ffc107' },
-    'barcelona': { icon: '🔵', bg: 'rgba(21,101,192,0.15)', color: '#1565c0' },
-    'mercedes': { icon: '⭐', bg: 'rgba(200,200,200,0.2)', color: '#e0e0e0' },
-    'bmw': { icon: '🌀', bg: 'rgba(52,152,219,0.15)', color: '#3498db' },
+    'real madrid': { icon: '👑', img: '/uploads/badges/real-madrid.svg', bg: 'rgba(255,193,7,0.15)', color: '#ffc107' },
+    'barcelona': { icon: '🔵', img: '/uploads/badges/barcelona.svg', bg: 'rgba(21,101,192,0.15)', color: '#1565c0' },
+    'mercedes': { icon: '⭐', img: '/uploads/badges/mercedes.svg', bg: 'rgba(200,200,200,0.2)', color: '#e0e0e0' },
+    'bmw': { icon: '🌀', img: '/uploads/badges/bmw.svg', bg: 'rgba(52,152,219,0.15)', color: '#3498db' },
   }
   const key = Object.keys(map).find(k => badge.toLowerCase().includes(k))
   return key ? map[key] : { icon: '🏅', bg: 'rgba(42,171,238,0.1)', color: 'var(--primary)' }
@@ -450,12 +450,14 @@ export default function Admin() {
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
               Current badges: {badgeUser.badges?.length > 0 ? badgeUser.badges.map((b, i) => {
                 const s = badgeStyles(b)
+                if (s.img) return <img key={i} src={s.img} alt="" style={{ width: 18, height: 18, margin: '0 2px', verticalAlign: 'middle' }} />
                 return <span key={i} style={{ margin: '0 1px' }}>{s.icon || b}</span>
               }) : 'none'}
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
               {AVAILABLE_BADGES.map(b => {
                 const has = badgeUser.badges?.includes(b)
+                const s = badgeStyles(b)
                 return (
                   <button key={b} onClick={() => {
                     const updated = has
@@ -463,10 +465,11 @@ export default function Admin() {
                       : [...(badgeUser.badges || []), b]
                     setBadgeUser({ ...badgeUser, badges: updated })
                   }} style={{
-                    fontSize: 22, padding: '6px 10px', border: has ? '2px solid var(--primary)' : '1px solid var(--border)',
-                    borderRadius: 8, cursor: 'pointer', background: has ? 'rgba(42,171,238,0.1)' : 'var(--bg-tertiary)'
+                    padding: '6px 10px', border: has ? '2px solid var(--primary)' : '1px solid var(--border)',
+                    borderRadius: 8, cursor: 'pointer', background: has ? 'rgba(42,171,238,0.1)' : 'var(--bg-tertiary)',
+                    display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 13
                   }}>
-                    {b}
+                    {s.img ? <img src={s.img} alt="" style={{ width: 18, height: 18 }} /> : <span style={{ fontSize: 18 }}>{s.icon}</span>}
                   </button>
                 )
               })}
