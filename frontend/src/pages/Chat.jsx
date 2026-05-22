@@ -32,6 +32,10 @@ const badgeStyles = (badge) => {
     'barcelona': { icon: '🔵', img: '/badges/barcelona.svg', bg: 'rgba(21,101,192,0.15)', color: '#1565c0', border: '1px solid rgba(21,101,192,0.3)' },
     'mercedes': { icon: '⭐', img: '/badges/mercedes.svg', bg: 'rgba(200,200,200,0.2)', color: '#e0e0e0', border: '1px solid rgba(200,200,200,0.3)' },
     'bmw': { icon: '🌀', img: '/badges/bmw.svg', bg: 'rgba(52,152,219,0.15)', color: '#3498db', border: '1px solid rgba(52,152,219,0.3)' },
+    'amg': { icon: '🚗', img: '/badges/amg.svg', bg: 'rgba(0,0,0,0.15)', color: '#000', border: '1px solid rgba(0,0,0,0.3)' },
+    'muslim warrior': { icon: '⚔️', img: '/badges/muslim-warrior.png', bg: 'rgba(0,100,0,0.15)', color: '#006400', border: '1px solid rgba(0,100,0,0.3)' },
+    'arab warrior': { icon: '🛡️', img: '/badges/arab-warrior.png', bg: 'rgba(139,69,19,0.15)', color: '#8b4513', border: '1px solid rgba(139,69,19,0.3)' },
+    'street': { icon: '🔥', img: '/badges/bape.png', bg: 'rgba(255,0,0,0.15)', color: '#ff0000', border: '1px solid rgba(255,0,0,0.3)' },
   }
   const key = Object.keys(map).find(k => badge.toLowerCase().includes(k))
   return key ? map[key] : { icon: '🏅', bg: 'rgba(42,171,238,0.1)', color: 'var(--primary)', border: '1px solid rgba(42,171,238,0.2)' }

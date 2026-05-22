@@ -11,6 +11,10 @@ const badgeStyles = (badge) => {
     'barcelona': { icon: '🔵', img: '/badges/barcelona.svg', bg: 'rgba(21,101,192,0.15)', color: '#1565c0' },
     'mercedes': { icon: '⭐', img: '/badges/mercedes.svg', bg: 'rgba(200,200,200,0.2)', color: '#e0e0e0' },
     'bmw': { icon: '🌀', img: '/badges/bmw.svg', bg: 'rgba(52,152,219,0.15)', color: '#3498db' },
+    'amg': { icon: '🚗', img: '/badges/amg.svg', bg: 'rgba(0,0,0,0.15)', color: '#000' },
+    'muslim warrior': { icon: '⚔️', img: '/badges/muslim-warrior.png', bg: 'rgba(0,100,0,0.15)', color: '#006400' },
+    'arab warrior': { icon: '🛡️', img: '/badges/arab-warrior.png', bg: 'rgba(139,69,19,0.15)', color: '#8b4513' },
+    'street': { icon: '🔥', img: '/badges/bape.png', bg: 'rgba(255,0,0,0.15)', color: '#ff0000' },
   }
   const key = Object.keys(map).find(k => badge.toLowerCase().includes(k))
   return key ? map[key] : { icon: '🏅', bg: 'rgba(42,171,238,0.1)', color: 'var(--primary)' }
@@ -36,7 +40,7 @@ export default function Admin() {
   const messagesEndRef = useRef(null)
   const [badgeUser, setBadgeUser] = useState(null)
   const [badgeInput, setBadgeInput] = useState('')
-  const AVAILABLE_BADGES = ['Verified', 'Samurai', 'Real Madrid', 'Barcelona', 'Mercedes', 'BMW']
+  const AVAILABLE_BADGES = ['Verified', 'Samurai', 'Real Madrid', 'Barcelona', 'Mercedes', 'BMW', 'AMG', 'Muslim Warrior', 'Arab Warrior', 'Street']
 
   useEffect(() => {
     loadStats()
