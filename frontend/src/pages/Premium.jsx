@@ -10,7 +10,7 @@ const PLANS = [
 
 const CARD_INFO = {
   bank: 'Kapitalbank',
-  card: '9860 1701 2345 6789',
+  card: '5614 6835 1507 9812',
   name: 'SARVARJON XOLIQOV',
 }
 
