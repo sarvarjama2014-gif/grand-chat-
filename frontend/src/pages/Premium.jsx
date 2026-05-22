@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
@@ -15,10 +15,12 @@ const CARD_INFO = {
 }
 
 export default function Premium() {
-  const { user } = useAuth()
+  const { user, fetchUser } = useAuth()
   const navigate = useNavigate()
   const [selected, setSelected] = useState(null)
   const [sent, setSent] = useState(false)
+
+  useEffect(() => { fetchUser() }, [])
 
   const handleSent = () => {
     setSent(true)
