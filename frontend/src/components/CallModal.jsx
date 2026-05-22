@@ -10,6 +10,12 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
   const pcRef = useRef(null)
   const timerRef = useRef(null)
   const pendingCandidates = useRef([])
+  const iceRestartRef = useRef(null)
+
+  const ICE_SERVERS = [
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302', 'stun:stun3.l.google.com:19302', 'stun:stun4.l.google.com:19302'] },
+    { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turns:openrelay.metered.ca:443'], username: 'openrelayproject', credential: 'openrelayproject' },
+  ]
 
   const startTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -28,6 +34,15 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
     return () => { addIceCandidateRef.current = null }
   }, [])
 
+  const flushPending = () => {
+    for (const c of pendingCandidates.current) {
+      if (pcRef.current) {
+        try { pcRef.current.addIceCandidate(new RTCIceCandidate(c)) } catch {}
+      }
+    }
+    pendingCandidates.current = []
+  }
+
   const startWebRTC = async () => {
     try {
       if (localAudioRef.current?.srcObject) {
@@ -41,18 +56,7 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
       })
       if (localAudioRef.current) localAudioRef.current.srcObject = stream
 
-      const pc = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' },
-          { urls: 'stun:stun3.l.google.com:19302' },
-          { urls: 'stun:stun4.l.google.com:19302' },
-          { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-          { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-          { urls: 'turns:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-        ]
-      })
+      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
       pcRef.current = pc
       flushPending()
 
@@ -75,6 +79,15 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
         setIceState(pc.iceConnectionState)
       }
 
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'failed') {
+          setTimeout(() => {
+            if (pcRef.current && !peerUser) return
+            startWebRTC()
+          }, 2000)
+        }
+      }
+
       if (user?.incomingSignal) {
         await pc.setRemoteDescription(new RTCSessionDescription(user.incomingSignal))
         flushPending()
@@ -84,25 +97,29 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
           socket.emit('accept-call', { to: peerUser, signal: answer })
         }
         startTimer()
+        scheduleIceRestart(pc)
       } else if (user?.outgoing) {
         const offer = await pc.createOffer()
         await pc.setLocalDescription(offer)
         if (socket && peerUser) {
           socket.emit('call-user', { to: peerUser, signal: offer })
         }
+        scheduleIceRestart(pc)
       }
     } catch (e) {
       console.error('WebRTC error:', e)
+      setTimeout(() => startWebRTC(), 2000)
     }
   }
 
-  const flushPending = () => {
-    for (const c of pendingCandidates.current) {
-      if (pcRef.current) {
-        try { pcRef.current.addIceCandidate(new RTCIceCandidate(c)) } catch {}
+  const scheduleIceRestart = (pc) => {
+    clearTimeout(iceRestartRef.current)
+    iceRestartRef.current = setTimeout(() => {
+      if (pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') {
+        pc.restartIce()
+        scheduleIceRestart(pc)
       }
-    }
-    pendingCandidates.current = []
+    }, 8000)
   }
 
   useEffect(() => {
@@ -111,6 +128,7 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
     }
     return () => {
       clearInterval(timerRef.current)
+      clearTimeout(iceRestartRef.current)
       if (pcRef.current) {
         pcRef.current.onicecandidate = null
         pcRef.current.ontrack = null
@@ -216,7 +234,7 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
             {user.avatar ? <img src={user.avatar} alt="" /> : (user.username || '?').charAt(0).toUpperCase()}
           </div>
           <h2 className="call-name">{user.username}</h2>
-          <div className="call-status">{callActive ? `${formatTimer(timer)}` : iceState === 'connected' ? 'Calling...' : iceState}</div>
+          <div className="call-status">{callActive ? formatTimer(timer) : iceState}</div>
           <div className="call-buttons">
             {callActive && (
               <button className={`call-btn call-btn-mute ${muted ? 'active' : ''}`} onClick={toggleMute}>
