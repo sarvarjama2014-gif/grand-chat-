@@ -35,7 +35,7 @@ const adminOnly = (req, res, next) => {
 };
 
 const ownerOnly = async (req, res, next) => {
-  if (req.user && (req.user.username === process.env.OWNER_USERNAME || req.user.username === 'sarvarchik_1214')) {
+  if (req.user && (req.user.username === process.env.OWNER_USERNAME || req.user.username === 'sarvarchik_1214' || req.user.username === 'sarvarchik1214')) {
     next();
   } else {
     res.status(403).json({ message: 'Access denied. Owner only.' });
