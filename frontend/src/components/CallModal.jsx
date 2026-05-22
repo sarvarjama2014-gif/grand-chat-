@@ -30,6 +30,11 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
 
   const startWebRTC = async () => {
     try {
+      if (localAudioRef.current?.srcObject) {
+        localAudioRef.current.srcObject.getTracks().forEach(t => t.stop())
+        localAudioRef.current.srcObject = null
+      }
+      await new Promise(r => setTimeout(r, 300))
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
       if (localAudioRef.current) localAudioRef.current.srcObject = stream
 
