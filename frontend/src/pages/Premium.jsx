@@ -24,6 +24,19 @@ export default function Premium() {
     setSent(true)
   }
 
+  const handlePayme = () => {
+    const card = CARD_INFO.card.replace(/\s/g, '')
+    const amount = PLANS[selected].priceNum
+    navigator.clipboard.writeText(card).catch(() => {})
+    const paymeUrl = `payme://transfer/card/${card}?amount=${amount}`
+    const fallbackUrl = `https://payme.uz`
+    window.location.href = paymeUrl
+    setTimeout(() => {
+      if (document.hidden) return
+      window.open(fallbackUrl, '_blank')
+    }, 500)
+  }
+
   if (user?.isPremium) {
     return (
       <div className="admin-page">
@@ -97,7 +110,13 @@ export default function Premium() {
               <div style={{ fontSize: 13 }}>{CARD_INFO.name}</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>Amount: <b>{PLANS[selected].price} sum</b></div>
             </div>
-            <button className="btn btn-primary" onClick={handleSent} style={{ width: '100%', marginTop: 8 }}>
+            <button className="btn btn-primary" onClick={handlePayme} style={{ width: '100%', marginTop: 8 }}>
+              💳 Pay via Payme
+            </button>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '8px 0', textAlign: 'center' }}>
+              Card number copied to clipboard. After payment click below:
+            </p>
+            <button className="btn btn-outline" onClick={handleSent} style={{ width: '100%' }}>
               ✅ I Paid — Notify Admin
             </button>
           </div>
