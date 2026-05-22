@@ -143,4 +143,20 @@ router.put('/badges/:id', async (req, res) => {
   }
 });
 
+router.post('/reset-badges', async (req, res) => {
+  try {
+    const users = db.getAllUsers(1, 10000);
+    let cleared = 0;
+    for (const u of users) {
+      if (u.badges && u.badges.length > 0) {
+        db.updateUser(u.id, { badges: [] });
+        cleared++;
+      }
+    }
+    res.json({ message: `Cleared badges from ${cleared} users` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
