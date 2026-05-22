@@ -51,17 +51,27 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
         localAudioRef.current.srcObject = null
       }
       await new Promise(r => setTimeout(r, 500))
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        video: false
-      })
-      if (localAudioRef.current) localAudioRef.current.srcObject = stream
 
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS })
       pcRef.current = pc
       flushPending()
 
-      stream.getAudioTracks().forEach(track => pc.addTransceiver(track, { streams: [stream] }))
+      let localStream = null
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          video: false
+        })
+        if (localAudioRef.current) localAudioRef.current.srcObject = localStream
+        localStream.getAudioTracks().forEach(track => pc.addTransceiver(track, { streams: [localStream] }))
+      } catch (e) {
+        if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+          setMicError('blocked')
+          pc.addTransceiver('audio', { direction: 'recvonly' })
+        } else {
+          throw e
+        }
+      }
 
       pc.onicecandidate = (e) => {
         if (e.candidate && socket && peerUser) {
@@ -109,11 +119,7 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
       }
     } catch (e) {
       console.error('WebRTC error:', e)
-      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-        setMicError('blocked')
-      } else {
-        setTimeout(() => startWebRTC(), 2000)
-      }
+      setTimeout(() => startWebRTC(), 2000)
     }
   }
 
@@ -240,12 +246,18 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
           </div>
           <h2 className="call-name">{user.username}</h2>
           {micError === 'blocked' ? (
-            <div className="call-status" style={{ fontSize: 12, color: '#ff4444', padding: '0 10px' }}>
-              Click 🔒 in address bar → Microphone → Allow → Reload page (F5)
-              <br /><br />
+            <div style={{ fontSize: 12, color: '#ff4444', padding: '0 10px', textAlign: 'center' }}>
+              <div>Микрофон заблокирован браузером</div>
+              <div style={{ fontSize: 11, marginTop: 6 }}>
+                Chrome: <b onClick={() => {navigator.clipboard?.writeText('chrome://settings/content/siteDetails?site=https://grand-chat-production.up.railway.app')}} style={{cursor:'pointer',textDecoration:'underline'}}>скопировать ссылку</b>
+                → вставить в адресную строку → Microphone = Allow
+              </div>
+              <div style={{ fontSize: 11, marginTop: 4 }}>
+                Или: Меню ⋮ → Настройки → Микрофон → найти сайт → Разрешить → F5
+              </div>
               <button onClick={() => { setMicError(null); startWebRTC() }}
-                style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 14 }}>
-                Try Again
+                style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 14, marginTop: 8 }}>
+                Попробовать снова
               </button>
             </div>
           ) : (
