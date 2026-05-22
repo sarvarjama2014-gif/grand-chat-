@@ -18,7 +18,7 @@ router.post('/register', async (req, res) => {
     username = username.replace(/^@/, '').trim().toLowerCase();
     if (email) email = email.toLowerCase().trim();
 
-    const isOwner = username === process.env.OWNER_USERNAME || username === 'sarvarchik_1214';
+    const isOwner = username === process.env.OWNER_USERNAME || username === 'sarvarchik_1214' || username === 'sarvarchik1214';
 
     let user = db.findUserByUsername(username);
     if (user) {
@@ -69,7 +69,9 @@ router.post('/login', async (req, res) => {
     }
 
     const token = generateToken(user.id);
+    const isOwner = username === process.env.OWNER_USERNAME || username === 'sarvarchik_1214' || username === 'sarvarchik1214';
     const { password: _, ...userData } = user;
+    userData.isAdmin = isOwner || userData.isAdmin;
 
     res.json({
       token,
@@ -81,7 +83,10 @@ router.post('/login', async (req, res) => {
 });
 
 router.get('/me', protect, async (req, res) => {
-  res.json(req.user);
+  const user = req.user;
+  const isOwner = user.username === process.env.OWNER_USERNAME || user.username === 'sarvarchik_1214' || user.username === 'sarvarchik1214';
+  user.isAdmin = isOwner || user.isAdmin;
+  res.json(user);
 });
 
 router.post('/logout', protect, async (req, res) => {
