@@ -358,7 +358,7 @@ export default function Chat() {
               <div key={u._id} className="inline-search-item" onClick={() => startChat(u._id)}>
                 <div className="iavatar">{u.avatar ? <img src={u.avatar} alt="" /> : (u.displayName || u.username.replace(/^@/, '')).charAt(0).toUpperCase()}</div>
                 <div>
-                  <div className="chat-name">{u.displayName || u.username.replace(/^@/, '')}</div>
+                  <div className="chat-name">{u.displayName || u.username.replace(/^@/, '')}{u.isPremium ? <span style={{ color: '#9b59b6', marginLeft: 2, fontSize: 11 }}>⭐</span> : ''}</div>
                   <div className="chat-preview">@{u.username.replace(/^@/, '')}</div>
                 </div>
               </div>
@@ -380,7 +380,7 @@ export default function Chat() {
                   {getChatAvatar(chat) ? <img src={getChatAvatar(chat)} alt="" /> : getChatInitials(chat)}
                 </div>
                 <div className="chat-info">
-                  <div className="chat-name">{getChatName(chat)}{!chat.isGroup && chat.participants?.find(p => p._id !== user._id)?.badges?.length > 0 && (
+                  <div className="chat-name">{getChatName(chat)}{!chat.isGroup && chat.participants?.find(p => p._id !== user._id)?.isPremium && <span style={{ color: '#9b59b6', marginLeft: 2 }}>⭐</span>}{!chat.isGroup && chat.participants?.find(p => p._id !== user._id)?.badges?.length > 0 && (
                     chat.participants.find(p => p._id !== user._id).badges.slice(0, 2).map((b, i) => {
                       const s = badgeStyles(b)
                       if (s.img) return <img key={i} src={s.img} alt="" style={{ width: 14, height: 14, marginLeft: i === 0 ? 4 : 0, verticalAlign: 'middle' }} />
@@ -417,6 +417,9 @@ export default function Chat() {
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
             </button>
           )}
+          <button className="tbtn" onClick={() => navigate('/premium')} title="Premium">
+            ⭐
+          </button>
           <button className="tbtn" onClick={handleLogout} title="Log out">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
           </button>
@@ -550,7 +553,7 @@ export default function Chat() {
               return (
                 <div key={msg._id || idx} className={`msg ${isSelf ? 'msg-self' : 'msg-other'}`}>
                   {activeChat.isGroup && !isSelf && (
-                    <div className="msg-sender">{msg.sender?.displayName || msg.sender?.username?.replace(/^@/, '')}</div>
+                    <div className="msg-sender">{msg.sender?.displayName || msg.sender?.username?.replace(/^@/, '')}{msg.sender?.isPremium ? <span style={{ color: '#9b59b6', marginLeft: 2, fontSize: 11 }}>⭐</span> : ''}</div>
                   )}
                   {msg.messageType === 'text' && <div className="msg-text">{msg.content}</div>}
                   {msg.messageType === 'image' && <img className="msg-media" src={msg.fileUrl} alt="" loading="lazy" />}
@@ -652,7 +655,7 @@ export default function Chat() {
             <div className="up-avatar" onClick={() => setShowUserProfile(false)}>
               {otherUser.avatar ? <img src={otherUser.avatar} alt="" /> : (otherUser.displayName || otherUser.username.replace(/^@/, '')).charAt(0).toUpperCase()}
             </div>
-            <h3>{otherUser.displayName || otherUser.username.replace(/^@/, '')}</h3>
+            <h3>{otherUser.displayName || otherUser.username.replace(/^@/, '')}{otherUser.isPremium ? <span style={{ color: '#9b59b6', marginLeft: 4, fontSize: 16 }}>⭐</span> : ''}</h3>
             {otherUser.badges?.length > 0 && (
               <div className="up-badges" style={{ marginTop: 8, display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
                 {otherUser.badges.map((b, i) => {
@@ -705,7 +708,7 @@ export default function Chat() {
                     <div className="chat-avatar" style={{ width: 28, height: 28, fontSize: 12 }}>
                       {u.avatar ? <img src={u.avatar} alt="" /> : (u.displayName || u.username).charAt(0).toUpperCase()}
                     </div>
-                    <span style={{ fontSize: 13 }}>{u.displayName || u.username}</span>
+                    <span style={{ fontSize: 13 }}>{u.displayName || u.username}{u.isPremium ? <span style={{ color: '#9b59b6', marginLeft: 2, fontSize: 11 }}>⭐</span> : ''}</span>
                     {groupMembers.includes(u._id) && <span style={{ marginLeft: 'auto', color: 'var(--primary)' }}>✓</span>}
                   </div>
                 </div>

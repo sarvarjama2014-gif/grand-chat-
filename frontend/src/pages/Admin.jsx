@@ -109,6 +109,16 @@ export default function Admin() {
     }
   }
 
+  const togglePremium = async (userId) => {
+    try {
+      await api.put(`/admin/premium/${userId}`)
+      loadUsers()
+      loadStats()
+    } catch (err) {
+      alert(err.response?.data?.message || 'Error')
+    }
+  }
+
   const deleteUser = async (userId) => {
     if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return
     try {
@@ -353,11 +363,16 @@ export default function Admin() {
                           {u.isBanned && <span className="badge badge-danger" style={{ marginLeft: 4 }}>Banned</span>}
                         </td>
                         <td>
-                          {u.isAdmin ? (
-                            <span className="badge" style={{ background: 'rgba(42,171,238,0.15)', color: 'var(--primary)' }}>Owner</span>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>User</span>
-                          )}
+                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                            {u.isPremium ? (
+                              <span className="badge" style={{ background: 'rgba(155,89,182,0.15)', color: '#9b59b6' }}>Premium</span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>User</span>
+                            )}
+                            {u.isAdmin && (
+                              <span className="badge" style={{ background: 'rgba(42,171,238,0.15)', color: 'var(--primary)' }}>Owner</span>
+                            )}
+                          </div>
                         </td>
                         <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{formatDate(u.createdAt)}</td>
                         <td>
@@ -368,6 +383,10 @@ export default function Admin() {
                             <button className="btn-action" onClick={() => setBadgeUser(u)}
                               style={{ background: (u.badges?.length || 0) > 0 ? 'rgba(156,39,176,0.15)' : 'var(--bg-tertiary)', color: (u.badges?.length || 0) > 0 ? '#9c27b0' : 'var(--text-muted)' }}>
                               {u.badges?.length || 0 > 0 ? u.badges.slice(0, 2).join('') : 'Badges'}
+                            </button>
+                            <button className="btn-action" onClick={() => togglePremium(u._id)}
+                              style={{ background: u.isPremium ? 'rgba(155,89,182,0.2)' : 'var(--bg-tertiary)', color: u.isPremium ? '#9b59b6' : 'var(--text-muted)' }}>
+                              {u.isPremium ? 'Premium ✓' : 'Premium'}
                             </button>
                             {!u.isAdmin && (
                               <>

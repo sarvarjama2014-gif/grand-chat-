@@ -56,9 +56,13 @@ db.exec(`
 
 try {
   db.exec("ALTER TABLE users ADD COLUMN badges TEXT DEFAULT '[]'");
-} catch (e) {
-  // column already exists
-}
+} catch (e) {}
+try {
+  db.exec("ALTER TABLE users ADD COLUMN isPremium INTEGER DEFAULT 0");
+} catch (e) {}
+try {
+  db.exec("ALTER TABLE users ADD COLUMN premiumExpires TEXT");
+} catch (e) {}
 
 function rowToUser(row) {
   if (!row) return null;
@@ -74,6 +78,8 @@ function rowToUser(row) {
     isAdmin: !!row.isAdmin,
     isBanned: !!row.isBanned,
     isOnline: !!row.isOnline,
+    isPremium: !!row.isPremium,
+    premiumExpires: row.premiumExpires,
     badges: JSON.parse(row.badges || '[]'),
     lastSeen: row.lastSeen,
     createdAt: row.createdAt,
@@ -188,7 +194,7 @@ const dbh = {
         values.push(bcrypt.hashSync(value, 10));
       } else if (key === '_id' || key === 'id') {
         continue;
-      } else if (key === 'isAdmin' || key === 'isBanned' || key === 'isOnline') {
+      } else if (key === 'isAdmin' || key === 'isBanned' || key === 'isOnline' || key === 'isPremium') {
         fields.push(`${key} = ?`);
         values.push(value ? 1 : 0);
       } else if (key === 'badges' || key === 'participants') {

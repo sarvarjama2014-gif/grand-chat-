@@ -6,6 +6,7 @@ import Register from './pages/Register'
 import Chat from './pages/Chat'
 import Admin from './pages/Admin'
 import Profile from './pages/Profile'
+import Premium from './pages/Premium'
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth()
@@ -50,6 +51,11 @@ export default function App() {
             <Admin />
           </SocketProvider>
         </AdminRoute>
+      } />
+      <Route path="/premium" element={
+        <ProtectedRoute>
+          <Premium />
+        </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

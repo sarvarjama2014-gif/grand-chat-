@@ -143,4 +143,17 @@ router.put('/badges/:id', async (req, res) => {
   }
 });
 
+router.put('/premium/:id', async (req, res) => {
+  try {
+    const user = db.findUser(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const isPremium = !user.isPremium;
+    const expires = isPremium ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null;
+    const updated = db.updateUser(user.id, { isPremium, premiumExpires: expires });
+    res.json({ message: `Premium ${isPremium ? 'enabled' : 'disabled'}`, user: updated });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
