@@ -34,8 +34,11 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
         localAudioRef.current.srcObject.getTracks().forEach(t => t.stop())
         localAudioRef.current.srcObject = null
       }
-      await new Promise(r => setTimeout(r, 300))
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      await new Promise(r => setTimeout(r, 500))
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false
+      })
       if (localAudioRef.current) localAudioRef.current.srcObject = stream
 
       const pc = new RTCPeerConnection({
@@ -53,7 +56,7 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
       pcRef.current = pc
       flushPending()
 
-      stream.getTracks().forEach(track => pc.addTrack(track, stream))
+      stream.getAudioTracks().forEach(track => pc.addTransceiver(track, { streams: [stream] }))
 
       pc.onicecandidate = (e) => {
         if (e.candidate && socket && peerUser) {
@@ -62,7 +65,10 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
       }
 
       pc.ontrack = (e) => {
-        if (remoteAudioRef.current) remoteAudioRef.current.srcObject = e.streams[0]
+        if (remoteAudioRef.current) {
+          remoteAudioRef.current.srcObject = e.streams[0]
+          remoteAudioRef.current.play().catch(() => {})
+        }
       }
 
       pc.oniceconnectionstatechange = () => {
@@ -203,8 +209,8 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
   if (user) {
     return (
       <div className="call-overlay">
-        <audio ref={localAudioRef} muted autoPlay />
-        <audio ref={remoteAudioRef} autoPlay />
+        <audio ref={localAudioRef} muted autoPlay playsInline />
+        <audio ref={remoteAudioRef} autoPlay playsInline />
         <div className="call-card">
           <div className="call-avatar-big">
             {user.avatar ? <img src={user.avatar} alt="" /> : (user.username || '?').charAt(0).toUpperCase()}
