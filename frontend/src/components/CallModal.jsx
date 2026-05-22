@@ -240,8 +240,13 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
           </div>
           <h2 className="call-name">{user.username}</h2>
           {micError === 'blocked' ? (
-            <div className="call-status" style={{ fontSize: 13, color: '#ff4444' }}>
-              Microphone blocked. Open Safari Settings → <b>grand-chat-production.up.railway.app</b> → Microphone → Allow
+            <div className="call-status" style={{ fontSize: 12, color: '#ff4444', padding: '0 10px' }}>
+              Click 🔒 in address bar → Microphone → Allow → Reload page (F5)
+              <br /><br />
+              <button onClick={() => { setMicError(null); startWebRTC() }}
+                style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 14 }}>
+                Try Again
+              </button>
             </div>
           ) : (
             <div className="call-status">{callActive ? formatTimer(timer) : iceState}</div>
