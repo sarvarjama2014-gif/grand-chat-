@@ -5,6 +5,7 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
   const [speakerOn, setSpeakerOn] = useState(true)
   const [timer, setTimer] = useState(0)
   const [iceState, setIceState] = useState('connecting')
+  const [micError, setMicError] = useState(null)
   const localAudioRef = useRef(null)
   const remoteAudioRef = useRef(null)
   const pcRef = useRef(null)
@@ -108,7 +109,11 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
       }
     } catch (e) {
       console.error('WebRTC error:', e)
-      setTimeout(() => startWebRTC(), 2000)
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+        setMicError('blocked')
+      } else {
+        setTimeout(() => startWebRTC(), 2000)
+      }
     }
   }
 
@@ -234,7 +239,13 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
             {user.avatar ? <img src={user.avatar} alt="" /> : (user.username || '?').charAt(0).toUpperCase()}
           </div>
           <h2 className="call-name">{user.username}</h2>
-          <div className="call-status">{callActive ? formatTimer(timer) : iceState}</div>
+          {micError === 'blocked' ? (
+            <div className="call-status" style={{ fontSize: 13, color: '#ff4444' }}>
+              Microphone blocked. Open Safari Settings → <b>grand-chat-production.up.railway.app</b> → Microphone → Allow
+            </div>
+          ) : (
+            <div className="call-status">{callActive ? formatTimer(timer) : iceState}</div>
+          )}
           <div className="call-buttons">
             {callActive && (
               <button className={`call-btn call-btn-mute ${muted ? 'active' : ''}`} onClick={toggleMute}>
