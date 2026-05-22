@@ -5,12 +5,12 @@ import api from '../utils/api'
 
 const badgeStyles = (badge) => {
   const map = {
-    'verified': { icon: '✅', img: '/uploads/badges/verified.svg', bg: 'rgba(42,171,238,0.15)', color: '#2aabee' },
-    'samurai': { icon: '⚔️', bg: 'rgba(156,39,176,0.15)', color: '#9c27b0' },
-    'real madrid': { icon: '👑', img: '/uploads/badges/real-madrid.svg', bg: 'rgba(255,193,7,0.15)', color: '#ffc107' },
-    'barcelona': { icon: '🔵', img: '/uploads/badges/barcelona.svg', bg: 'rgba(21,101,192,0.15)', color: '#1565c0' },
-    'mercedes': { icon: '⭐', img: '/uploads/badges/mercedes.svg', bg: 'rgba(200,200,200,0.2)', color: '#e0e0e0' },
-    'bmw': { icon: '🌀', img: '/uploads/badges/bmw.svg', bg: 'rgba(52,152,219,0.15)', color: '#3498db' },
+    'verified': { icon: '✅', img: '/badges/verified.svg', bg: 'rgba(42,171,238,0.15)', color: '#2aabee' },
+    'samurai': { icon: '⚔️', img: '/badges/samurai.png', bg: 'rgba(156,39,176,0.15)', color: '#9c27b0' },
+    'real madrid': { icon: '👑', img: '/badges/real-madrid.svg', bg: 'rgba(255,193,7,0.15)', color: '#ffc107' },
+    'barcelona': { icon: '🔵', img: '/badges/barcelona.svg', bg: 'rgba(21,101,192,0.15)', color: '#1565c0' },
+    'mercedes': { icon: '⭐', img: '/badges/mercedes.svg', bg: 'rgba(200,200,200,0.2)', color: '#e0e0e0' },
+    'bmw': { icon: '🌀', img: '/badges/bmw.svg', bg: 'rgba(52,152,219,0.15)', color: '#3498db' },
   }
   const key = Object.keys(map).find(k => badge.toLowerCase().includes(k))
   return key ? map[key] : { icon: '🏅', bg: 'rgba(42,171,238,0.1)', color: 'var(--primary)' }
@@ -36,9 +36,7 @@ export default function Admin() {
   const messagesEndRef = useRef(null)
   const [badgeUser, setBadgeUser] = useState(null)
   const [badgeInput, setBadgeInput] = useState('')
-  const AVAILABLE_BADGES = ['⭐', '✅', '👑', '💎', '🎖️', '🏆', '❤️', '🔥', '💯', '⚡', '🎯', '🌈',
-    'Samurai', '⚽', 'Real Madrid', 'Barcelona', 'Mercedes', 'BMW', '🏎️', '🚗', '🏍️',
-    '🎮', '🎸', '🎬', '📸', '✈️', '🚀', '🎨', '💻', '📱', '🛡️', '🏅', '🎪']
+  const AVAILABLE_BADGES = ['Verified', 'Samurai', 'Real Madrid', 'Barcelona', 'Mercedes', 'BMW']
 
   useEffect(() => {
     loadStats()
