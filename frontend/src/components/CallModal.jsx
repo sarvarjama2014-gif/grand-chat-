@@ -4,6 +4,7 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
   const [muted, setMuted] = useState(false)
   const [speakerOn, setSpeakerOn] = useState(true)
   const [timer, setTimer] = useState(0)
+  const [iceState, setIceState] = useState('connecting')
   const localAudioRef = useRef(null)
   const remoteAudioRef = useRef(null)
   const pcRef = useRef(null)
@@ -18,9 +19,8 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
   useEffect(() => {
     if (!addIceCandidateRef) return
     addIceCandidateRef.current = (candidate) => {
-      if (!pcRef.current) return
-      if (pcRef.current.remoteDescription) {
-        try { pcRef.current.addIceCandidate(new RTCIceCandidate(candidate)) } catch (e) {}
+      if (pcRef.current?.remoteDescription) {
+        try { pcRef.current.addIceCandidate(new RTCIceCandidate(candidate)) } catch {}
       } else {
         pendingCandidates.current.push(candidate)
       }
@@ -46,6 +46,7 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
         ]
       })
       pcRef.current = pc
+      flushPending()
 
       stream.getTracks().forEach(track => pc.addTrack(track, stream))
 
@@ -57,6 +58,10 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
 
       pc.ontrack = (e) => {
         if (remoteAudioRef.current) remoteAudioRef.current.srcObject = e.streams[0]
+      }
+
+      pc.oniceconnectionstatechange = () => {
+        setIceState(pc.iceConnectionState)
       }
 
       if (user?.incomingSignal) {
@@ -200,7 +205,7 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
             {user.avatar ? <img src={user.avatar} alt="" /> : (user.username || '?').charAt(0).toUpperCase()}
           </div>
           <h2 className="call-name">{user.username}</h2>
-          <div className="call-status">{callActive ? formatTimer(timer) : 'Calling...'}</div>
+          <div className="call-status">{callActive ? `${formatTimer(timer)}` : iceState === 'connected' ? 'Calling...' : iceState}</div>
           <div className="call-buttons">
             {callActive && (
               <button className={`call-btn call-btn-mute ${muted ? 'active' : ''}`} onClick={toggleMute}>
