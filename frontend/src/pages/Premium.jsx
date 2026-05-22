@@ -30,13 +30,7 @@ export default function Premium() {
     const card = CARD_INFO.card.replace(/\s/g, '')
     const amount = PLANS[selected].priceNum
     navigator.clipboard.writeText(card).catch(() => {})
-    const paymeUrl = `payme://transfer/card/${card}?amount=${amount}`
-    const fallbackUrl = `https://payme.uz`
-    window.location.href = paymeUrl
-    setTimeout(() => {
-      if (document.hidden) return
-      window.open(fallbackUrl, '_blank')
-    }, 500)
+    window.location.href = `payme://transfer/card/${card}?amount=${amount}`
   }
 
   if (user?.isPremium) {
