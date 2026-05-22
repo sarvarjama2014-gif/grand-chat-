@@ -8,30 +8,7 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
   const remoteAudioRef = useRef(null)
   const pcRef = useRef(null)
   const timerRef = useRef(null)
-
-  useEffect(() => {
-    if (user?.accepted || user?.incomingSignal) {
-      timerRef.current = setInterval(() => setTimer(t => t + 1), 1000)
-      startWebRTC()
-    } else if (user?.outgoing) {
-      startWebRTC()
-    }
-    return () => {
-      clearInterval(timerRef.current)
-      if (pcRef.current) {
-        pcRef.current.onicecandidate = null
-        pcRef.current.ontrack = null
-        pcRef.current.close()
-      }
-      localAudioRef.current?.srcObject?.getTracks().forEach(t => t.stop())
-    }
-  }, [])
-
-  useEffect(() => {
-    if (user?.iceCandidate && pcRef.current && pcRef.current.remoteDescription) {
-      pcRef.current.addIceCandidate(new RTCIceCandidate(user.iceCandidate)).catch(() => {})
-    }
-  }, [user?.iceCandidate])
+  const pendingCandidates = useRef([])
 
   const startWebRTC = async () => {
     try {
@@ -55,15 +32,16 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
 
       if (user?.incomingSignal) {
         await pc.setRemoteDescription(new RTCSessionDescription(user.incomingSignal))
+        for (const c of pendingCandidates.current) {
+          try { pc.addIceCandidate(new RTCIceCandidate(c)) } catch {}
+        }
+        pendingCandidates.current = []
         const answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
         if (socket && peerUser) {
           socket.emit('accept-call', { to: peerUser, signal: answer })
         }
-        if (timerRef.current) clearInterval(timerRef.current)
-        timerRef.current = setInterval(() => setTimer(t => t + 1), 1000)
-      } else if (user?.signal) {
-        await pc.setRemoteDescription(new RTCSessionDescription(user.signal))
+        startTimer()
       } else if (user?.outgoing) {
         const offer = await pc.createOffer()
         await pc.setLocalDescription(offer)
@@ -75,6 +53,53 @@ export default function CallModal({ caller, incoming, user, onAccept, onReject, 
       console.error('WebRTC error:', e)
     }
   }
+
+  const startTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = setInterval(() => setTimer(t => t + 1), 1000)
+  }
+
+  useEffect(() => {
+    if (user?.outgoing || user?.incomingSignal) {
+      startWebRTC()
+    }
+    return () => {
+      clearInterval(timerRef.current)
+      if (pcRef.current) {
+        pcRef.current.onicecandidate = null
+        pcRef.current.ontrack = null
+        pcRef.current.close()
+      }
+      localAudioRef.current?.srcObject?.getTracks().forEach(t => t.stop())
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!user?.signal || !pcRef.current) return
+    if (pcRef.current.remoteDescription) return
+    const doSet = async () => {
+      try {
+        await pcRef.current.setRemoteDescription(new RTCSessionDescription(user.signal))
+        for (const c of pendingCandidates.current) {
+          try { pcRef.current.addIceCandidate(new RTCIceCandidate(c)) } catch {}
+        }
+        pendingCandidates.current = []
+        startTimer()
+      } catch (e) {
+        console.error('setRemote error:', e)
+      }
+    }
+    doSet()
+  }, [user?.signal])
+
+  useEffect(() => {
+    if (!user?.iceCandidate || !pcRef.current) return
+    if (pcRef.current.remoteDescription) {
+      pcRef.current.addIceCandidate(new RTCIceCandidate(user.iceCandidate)).catch(() => {})
+    } else {
+      pendingCandidates.current.push(user.iceCandidate)
+    }
+  }, [user?.iceCandidate])
 
   const formatTimer = (s) => {
     const m = Math.floor(s / 60)

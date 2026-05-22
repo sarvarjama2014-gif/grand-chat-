@@ -11,8 +11,8 @@ const badgeStyles = (badge) => {
     'barcelona': { icon: '🔵', img: '/badges/barcelona.svg', bg: 'rgba(21,101,192,0.15)', color: '#1565c0' },
     'mercedes': { icon: '⭐', img: '/badges/mercedes.svg', bg: 'rgba(200,200,200,0.2)', color: '#e0e0e0' },
     'bmw': { icon: '🌀', img: '/badges/bmw.svg', bg: 'rgba(52,152,219,0.15)', color: '#3498db' },
-    'amg': { icon: '🚗', img: '/badges/amg.svg', bg: 'rgba(0,0,0,0.15)', color: '#000' },
-    'muslim warrior': { icon: '⚔️', img: '/badges/muslim-warrior.png', bg: 'rgba(0,100,0,0.15)', color: '#006400' },
+    'amg': { icon: '🚗', img: '/badges/amg.jpg', bg: 'rgba(0,0,0,0.15)', color: '#000' },
+    'muslim warrior': { icon: '⚔️', img: '/badges/muslim-warrior.jpg', bg: 'rgba(0,100,0,0.15)', color: '#006400' },
     'arab warrior': { icon: '🛡️', img: '/badges/arab-warrior.png', bg: 'rgba(139,69,19,0.15)', color: '#8b4513' },
     'street': { icon: '🔥', img: '/badges/bape.png', bg: 'rgba(255,0,0,0.15)', color: '#ff0000' },
   }
